@@ -1,0 +1,54 @@
+//@version=5
+indicator("Correalation of BTC with Weighted Sum of WALCL-WTREGEN-RRPONTSYD+H41RESPPAADHNWW and 1-BAMLHOAOHYM2", overlay=false, precision=3)
+
+// Input per i simboli
+sym1 = request.security("FRED:WALCL-WTREGEN-RRPONTSYD+H41RESPPAADHNWW", "2W", expression=close, lookahead=barmerge.lookahead_on)
+sym2 = request.security("FRED:BAMLH0A0HYM2", "2W", expression=close, lookahead=barmerge.lookahead_on)
+
+// Calcolo della SMA a 5 giorni per ogni asset
+sma_sym1 = ta.sma(sym1, 5)
+sma_sym2 = ta.sma(sym2, 5)
+
+// Input per i pesi
+peso1 = input.float(8, title="Peso per WALCL-WTREGEN-RRPONTSYD+H41RESPPAADHNWW", minval=0)
+peso2 = input.float(8, title="Peso per 1-BAMLHOAOHYM2", minval=0)
+
+// Normalizzazione delle grandezze per renderle confrontabili (min-max normalization)
+sma_sym1_min = ta.lowest(sma_sym1, 100)
+sma_sym1_max = ta.highest(sma_sym1, 100)
+sma_sym1_normalizzato = (sma_sym1 - sma_sym1_min) / (sma_sym1_max - sma_sym1_min)
+
+sma_sym21 = 1 - sma_sym2
+sma_sym21_min = ta.lowest(sma_sym21, 100)
+sma_sym21_max = ta.highest(sma_sym21, 100)
+sma_sym21_normalizzato = (sma_sym21 - sma_sym21_min) / (sma_sym21_max - sma_sym21_min)
+
+// Calcolo della somma pesata
+somma_pesata = peso1 * sma_sym1_normalizzato + peso2 * sma_sym21_normalizzato
+
+// Plot della somma pesata
+//plot(somma_pesata, title="Somma Pesata", color=color.blue)
+
+// Plot delle singole grandezze per confronto
+//plot(sym1_normalizzato, title="WALCL-WTREGEN-RRPONTSYD+H41RESPPAADHNWW (Normalizzato)", color=color.green)
+//plot(sym2_normalizzato, title="1-BAMLHOAOHYM2 (Normalizzato)", color=color.red)
+
+// Input per il nuovo asset da confrontare
+asset_confronto = request.security(input.symbol("BTC", title="Asset per il confronto"), "W", expression=close, lookahead=barmerge.lookahead_on)
+
+// Normalizzazione del nuovo asset
+asset_confronto_min = ta.lowest(asset_confronto, 100)
+asset_confronto_max = ta.highest(asset_confronto, 100)
+asset_confronto_normalizzato = (asset_confronto - asset_confronto_min) / (asset_confronto_max - asset_confronto_min)
+
+// Calcolo del coefficiente di correlazione tra la somma pesata e l'asset di confronto
+correlazione = (ta.correlation(somma_pesata, asset_confronto_normalizzato, 180))
+
+// Plot del coefficiente di correlazione
+plot(correlazione, title="Correlazione con Asset di Confronto", color=color.orange)
+
+// Riempimento dell'area sottostante al grafico della correlazione quando la correlazione è positiva
+hline_zero = plot(0, "Zero Line", color=color.gray)
+fill(plot1=plot(correlazione > 0 ? correlazione : na, title="Correlazione Positiva", color=color.green), plot2=hline_zero, color=color.new(color.green, 90))
+
+
